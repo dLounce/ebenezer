@@ -492,3 +492,41 @@ task.spawn(function()
 		repopulate()
 	end
 end)
+
+--============================================================ studio hook
+-- The Studio command bar runs in its own Luau VM, so the _G above is NOT the _G
+-- the command bar sees. Reach the filming helpers through the DataModel instead
+-- (command bar context must be Server):
+--
+--   game.ServerStorage.EbenezerHook:Invoke("tour")
+--   game.ServerStorage.EbenezerHook:Invoke("stone", "Player died five times", "pt")
+--   game.ServerStorage.EbenezerHook:Invoke("clear")
+--
+do
+	local ServerStorage = game:GetService("ServerStorage")
+	local old = ServerStorage:FindFirstChild("EbenezerHook")
+	if old then old:Destroy() end
+
+	local hook = Instance.new("BindableFunction")
+	hook.Name = "EbenezerHook"
+	hook.Parent = ServerStorage
+
+	hook.OnInvoke = function(action, a, b)
+		action = tostring(action or "stone")
+		if action == "clear" then
+			_G.Ebenezer.clear()
+		else
+			-- spawned so a twelve-request tour does not block the command bar
+			task.spawn(function()
+				if action == "tour" then
+					_G.Ebenezer.tour(a)
+				else
+					_G.Ebenezer.stone(a, b)
+				end
+			end)
+		end
+		return "ok: " .. action
+	end
+
+	log('studio hook ready - game.ServerStorage.EbenezerHook:Invoke("tour")')
+end

@@ -38,25 +38,35 @@ Then one card, 4 seconds, no voiceover:
 
 ## Command bar during a playtest
 
-Set the command-bar context to **Server** (not Client — client context cannot see
-`_G.Ebenezer`). Then:
+The command bar runs in its own Luau VM, so it **cannot see `_G.Ebenezer`** — that
+was tested and it fails with `attempt to index nil with 'tour'`. The helpers are
+exposed through a `BindableFunction` on the DataModel instead.
+
+First switch the command bar to the **server**: `Test` menu → **Toggle Client
+View**. The viewport border turns green and Explorer shows `NetworkServer`. Then:
 
 ```lua
--- one stone in a specific language, near you
-_G.Ebenezer.stone("Player died to the same creature five times in a row", "pt")
+-- the closing shot: one stone per entitled language, in a ring around you
+game.ServerStorage.EbenezerHook:Invoke("tour")
 
--- the closing shot: one stone per entitled language, in a ring
-_G.Ebenezer.tour()
+-- one stone in a specific language, near you
+game.ServerStorage.EbenezerHook:Invoke("stone", "Player died to the same creature five times", "pt")
 
 -- reset the local world between takes (backend record is untouched)
-_G.Ebenezer.clear()
+game.ServerStorage.EbenezerHook:Invoke("clear")
 ```
 
-Force a death without walking:
+The tour is twelve HTTP round trips and takes ~20–30s to finish placing.
+
+Force a death without walking to the chasm — this one works from **client**
+context, which is the default:
 
 ```lua
-game.Players:GetPlayers()[1].Character.Humanoid.Health = 0
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(74, 6, 26)
 ```
+
+That drops you into the chasm, which kills on touch, which fires the real death
+path. Verified: death → stone in 3.7 seconds.
 
 ## What the judges should be able to verify
 
