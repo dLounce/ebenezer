@@ -76,6 +76,23 @@ path. Verified: death → stone in 3.7 seconds.
 - Every stone in-game carries `Theme`, `Usfm`, `Reference`, `Locale`, `StoneId` as
   child values, so a judge poking around in Explorer finds real provenance.
 
+## Studio is unstable on this machine — shoot in short takes
+
+Studio has crashed twice, both times roughly ten minutes into a session, leaving a
+blank window that needs a full restart. 8 GB with Studio + a playtest is the likely
+cause; adding OBS will not help.
+
+Plan around it rather than fighting it:
+
+- **One shot per Play session.** Press Play, get the shot, Stop, Play again.
+- **Restart Studio every three or four takes**, before it decides for you.
+- **Ctrl+S before every recording session.** The place is safe on Roblox, but the
+  crash takes any unsaved layout with it.
+- Keep the browser closed while recording. Wake the backend, then close it.
+
+None of this affects the footage. It only affects how long you can go between
+restarts.
+
 ## Things that will bite you
 
 - **Cooldown is 25s per player.** Two deaths inside 25 seconds produce one stone.
