@@ -1,7 +1,8 @@
 -- EbenezerFilm -- the world films itself.
 --
 -- Paste into the Studio command bar DURING a playtest, in the default CLIENT
--- context. Runs about 50 seconds of camera work with no input from you.
+-- context, then press Ctrl+Enter. Runs about 50 seconds of camera work with no
+-- input from you.
 --
 -- Nothing here fakes anything. It kills the player for real, the real death
 -- handler fires, Gloo really chooses the passage, YouVersion really returns the
@@ -49,16 +50,40 @@ end
 
 local stones = workspace:WaitForChild("Stones", 10)
 
-local function seededStone()
-	if not stones then return nil end
-	for _, s in ipairs(stones:GetChildren()) do
-		local id = s:FindFirstChild("StoneId")
-		if id and tostring(id.Value):sub(1, 4) == "seed" then return s end
-	end
+local function allStones()
+	return stones and stones:GetChildren() or {}
 end
 
 local function slabOf(model)
 	return model and model:FindFirstChild("Slab")
+end
+
+local function guiOf(model)
+	local slab = slabOf(model)
+	return slab and slab:FindFirstChild("Inscription")
+end
+
+-- Show exactly one inscription at a time.
+--
+-- Stones cluster: several deaths in the same place leave several stones within a
+-- few studs of each other, and their billboards then print on top of one another.
+-- On camera that reads as a bug. So the film takes explicit control of which
+-- verse is legible in any given shot, instead of relying on distance.
+local function focus(model)
+	for _, s in ipairs(allStones()) do
+		local g = guiOf(s)
+		if g then
+			g.MaxDistance = 500          -- visibility is decided here, not by range
+			g.Enabled = (s == model)
+		end
+	end
+end
+
+local function seededStone()
+	for _, s in ipairs(allStones()) do
+		local id = s:FindFirstChild("StoneId")
+		if id and tostring(id.Value):sub(1, 4) == "seed" then return s end
+	end
 end
 
 task.spawn(function()
@@ -70,7 +95,8 @@ task.spawn(function()
 
 	------------------------------------------------------------------ 1. empty
 	-- Fog, half-light, nothing happening. Establishes that this is a world
-	-- before it is a point.
+	-- before it is a point. No text on screen at all.
+	focus(nil)
 	cut(Vector3.new(-52, 14, -96), Vector3.new(30, 6, 6))
 	move(Vector3.new(4, 11, -34), Vector3.new(74, 5, 24), 10)
 
@@ -80,9 +106,7 @@ task.spawn(function()
 
 	-- Snapshot what's standing, then die for real.
 	local before = {}
-	if stones then
-		for _, s in ipairs(stones:GetChildren()) do before[s] = true end
-	end
+	for _, s in ipairs(allStones()) do before[s] = true end
 
 	local char = plr.Character
 	if char and char:FindFirstChild("HumanoidRootPart") then
@@ -97,21 +121,19 @@ task.spawn(function()
 	local fresh, t0 = nil, os.clock()
 	repeat
 		task.wait(0.15)
-		if stones then
-			for _, s in ipairs(stones:GetChildren()) do
-				if not before[s] then fresh = s break end
-			end
+		for _, s in ipairs(allStones()) do
+			if not before[s] then fresh = s break end
 		end
 	until fresh or os.clock() - t0 > 30
 
 	if fresh then
+		focus(fresh)                      -- this verse, and only this verse
 		local slab = slabOf(fresh)
 		if slab then
 			local p = slab.Position
-			-- push in as it clears the ground
 			cut(p + Vector3.new(13, 6, 15), p)
 			move(p + Vector3.new(4, 2.5, 10), p + Vector3.new(0, 1.5, 0), 8)
-			task.wait(3)          -- let it be read
+			task.wait(3)                  -- let it be read
 		end
 	else
 		warn("[Film] no stone appeared -- backend asleep? open /health and retry")
@@ -122,6 +144,7 @@ task.spawn(function()
 	-- who. This is the shot the whole idea rests on.
 	local other = seededStone()
 	if other then
+		focus(other)
 		local slab = slabOf(other)
 		if slab then
 			local p = slab.Position
@@ -132,10 +155,11 @@ task.spawn(function()
 	end
 
 	--------------------------------------------------------------- 5. the map
-	-- Pull up and out. The world is bigger than the one moment.
-	local p = Vector3.new(0, 0, 0)
+	-- Pull up and out. The world is bigger than the one moment. Text off, so the
+	-- shot reads as landscape rather than as a wall of overlapping verses.
 	local anchor = slabOf(other or fresh)
-	if anchor then p = anchor.Position end
+	local p = anchor and anchor.Position or Vector3.new(0, 0, 0)
+	focus(nil)
 	move(p + Vector3.new(0, 120, 130), p, 9)
 
 	print("[Film] done -- stop recording")
