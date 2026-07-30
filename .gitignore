@@ -2,3 +2,5 @@
 __pycache__/
 *.pyc
 .venv
+# generated command-bar payloads; paste_1 carries the live shared secret
+roblox/paste_*.txt
